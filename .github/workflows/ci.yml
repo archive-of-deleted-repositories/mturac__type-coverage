@@ -1,0 +1,132 @@
+name: Validate Plugin Structure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          required_files=(
+            ".claude-plugin/plugin.json"
+            ".claude-plugin/marketplace.json"
+            "skills/type-scan/SKILL.md"
+            "skills/type-fix/SKILL.md"
+            "skills/type-report/SKILL.md"
+            "commands/type-coverage.md"
+            "commands/type-scan.md"
+            "commands/type-fix.md"
+            "commands/type-report.md"
+            "README.md"
+          )
+          for f in "${required_files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done
+
+      - name: Validate plugin.json schema
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+
+          with open(".claude-plugin/plugin.json") as f:
+              p = json.load(f)
+
+          errors = []
+          for field in ["name", "version", "author", "description", "skills", "commands"]:
+              if field not in p:
+                  errors.append(f"Missing field: {field}")
+
+          if not isinstance(p.get("skills"), list) or len(p["skills"]) == 0:
+              errors.append("skills must be a non-empty array")
+
+          if not isinstance(p.get("commands"), list) or len(p["commands"]) == 0:
+              errors.append("commands must be a non-empty array")
+
+          if not isinstance(p.get("author"), dict) or "name" not in p.get("author", {}):
+              errors.append("author must be an object with a name field")
+
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          print(f"plugin.json valid — name={p['name']}, version={p['version']}")
+          EOF
+
+      - name: Validate marketplace.json schema
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+
+          with open(".claude-plugin/marketplace.json") as f:
+              m = json.load(f)
+
+          if not isinstance(m.get("keywords"), list) or len(m["keywords"]) == 0:
+              print("ERROR: keywords must be a non-empty array")
+              sys.exit(1)
+
+          print(f"marketplace.json valid — keywords: {m['keywords']}")
+          EOF
+
+      - name: Validate SKILL.md files have required sections
+        run: |
+          python3 - <<'EOF'
+          import os, sys
+
+          skill_dirs = ["skills/type-scan", "skills/type-fix", "skills/type-report"]
+          errors = []
+
+          for d in skill_dirs:
+              path = os.path.join(d, "SKILL.md")
+              with open(path) as f:
+                  content = f.read()
+              if "## Steps" not in content:
+                  errors.append(f"{path}: missing '## Steps' section")
+              if len(content.strip()) < 100:
+                  errors.append(f"{path}: suspiciously short (< 100 chars)")
+
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          print("All SKILL.md files valid")
+          EOF
+
+      - name: Validate command files have Usage section
+        run: |
+          python3 - <<'EOF'
+          import os, sys
+
+          cmd_files = [
+            "commands/type-coverage.md",
+            "commands/type-scan.md",
+            "commands/type-fix.md",
+            "commands/type-report.md",
+          ]
+          errors = []
+
+          for path in cmd_files:
+              with open(path) as f:
+                  content = f.read()
+              if "## Usage" not in content:
+                  errors.append(f"{path}: missing '## Usage' section")
+
+          if errors:
+              for e in errors:
+                  print(f"ERROR: {e}")
+              sys.exit(1)
+
+          print("All command files valid")
+          EOF

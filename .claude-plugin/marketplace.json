@@ -1,0 +1,12 @@
+{
+  "keywords": [
+    "typescript",
+    "types",
+    "any",
+    "type-safety",
+    "coverage",
+    "static-analysis"
+  ],
+  "category": "code-quality",
+  "license": "MIT"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "type-coverage",
+  "version": "0.1.0",
+  "author": {
+    "name": "mturac"
+  },
+  "description": "Track TypeScript type safety coverage — find every 'any', unsafe cast, missing return type, and untyped parameter across the codebase.",
+  "skills": [
+    "skills/type-scan",
+    "skills/type-fix",
+    "skills/type-report"
+  ],
+  "commands": [
+    "commands/type-coverage.md",
+    "commands/type-scan.md",
+    "commands/type-fix.md",
+    "commands/type-report.md"
+  ]
+}
